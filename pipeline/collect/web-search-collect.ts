@@ -22,6 +22,7 @@ const INNOVATION_ARTICLES = [
 
 // Search queries targeting specific innovation cases
 const SEARCH_QUERIES = [
+  // English - Product Innovation
   'insurtech product launch 2025 2026',
   'insurance AI claims automation launch',
   'parametric insurance new product',
@@ -37,6 +38,47 @@ const SEARCH_QUERIES = [
   'insurance blockchain product',
   'usage-based insurance new product',
   'insurance wearable device integration',
+  // English - Advanced Topics
+  'insurance-as-a-service API platform',
+  'generative AI insurance underwriting',
+  'climate insurance parametric product',
+  'ESG insurance innovation launch',
+  'insurance super app digital ecosystem',
+  'insurance marketplace aggregator launch',
+  'drone insurance product commercial',
+  'insurance NFT digital asset',
+  'DeFi decentralized insurance protocol',
+  'insurance gamification wellness rewards',
+  // Chinese - 中文搜索
+  '保险科技 新产品发布 2025 2026',
+  '互联网保险 创新产品',
+  '数字保险平台 上线',
+  '健康险 AI 智能理赔',
+  '车险改革 UBI 创新',
+  '寿险数字化转型 新功能',
+  '惠民保 创新模式',
+  '保险科技 融资 新产品',
+  // Japanese - 日本語検索
+  '保険テック 新製品 2025 2026',
+  'デジタル保険 イノベーション 新サービス',
+  '自動車保険 テレマティクス 新機能',
+  '生命保険 デジタル 新商品',
+  // Korean - 한국어 검색
+  '인슈어테크 혁신 신제품 2025 2026',
+  '보험 디지털 전환 신규 서비스',
+  '자동차보험 텔레매틱스 혁신',
+  // French - Recherche française
+  'assurance innovation produit numérique 2025 2026',
+  'insurtech france lancement nouveau produit',
+  // German - Deutsche Suche
+  'Versicherung Innovation digitales Produkt 2025 2026',
+  'InsurTech Deutschland neues Produkt',
+  // Spanish - Búsqueda en español
+  'seguro innovación producto digital 2025 2026',
+  'insurtech latinoamérica nuevo producto',
+  // Portuguese - Pesquisa em português
+  'seguro inovação produto digital 2025 2026',
+  'insurtech brasil novo produto lançamento',
 ];
 
 async function fetchArticleContent(url: string): Promise<string> {

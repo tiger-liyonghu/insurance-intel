@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
-import { List, Globe, LayoutGrid } from 'lucide-react';
+import { List, Globe } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
@@ -12,7 +12,6 @@ export function Header() {
 
   const navItems = [
     { href: '/cases', label: 'Cases', labelZh: '\u6848\u4f8b', icon: List },
-    { href: '/matrix', label: 'Matrix', labelZh: '\u77e9\u9635', icon: LayoutGrid },
   ];
 
   return (

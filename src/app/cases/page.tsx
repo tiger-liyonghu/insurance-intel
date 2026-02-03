@@ -1,76 +1,70 @@
-import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { CaseCard } from '@/components/cases/CaseCard';
 import { FilterBar } from '@/components/cases/FilterBar';
 import CasesHeader from '@/components/cases/CasesHeader';
 import { Case, InnovationType, InsuranceLine, SentimentType } from '@/lib/types';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-interface CasesPageProps {
-  searchParams: Promise<{
-    innovation_type?: InnovationType;
-    insurance_line?: InsuranceLine;
-    sentiment?: SentimentType;
-    page?: string;
-  }>;
-}
+const PAGE_SIZE = 12;
 
-async function getCases(filters: {
-  innovation_type?: InnovationType;
-  insurance_line?: InsuranceLine;
-  sentiment?: SentimentType;
-  page?: number;
-}): Promise<{ cases: Case[]; total: number }> {
-  const supabase = await createClient();
-  const pageSize = 12;
-  const page = filters.page || 1;
-  const offset = (page - 1) * pageSize;
+function CasesContent() {
+  const searchParams = useSearchParams();
+  const [cases, setCases] = useState<Case[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  let query = supabase
-    .from('cases')
-    .select('*', { count: 'exact' })
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .range(offset, offset + pageSize - 1);
+  const innovationType = searchParams.get('innovation_type') as InnovationType | null;
+  const insuranceLine = searchParams.get('insurance_line') as InsuranceLine | null;
+  const sentiment = searchParams.get('sentiment') as SentimentType | null;
+  const page = parseInt(searchParams.get('page') || '1');
 
-  if (filters.innovation_type) {
-    query = query.eq('innovation_type', filters.innovation_type);
-  }
-  if (filters.insurance_line) {
-    query = query.eq('insurance_line', filters.insurance_line);
-  }
-  if (filters.sentiment) {
-    query = query.eq('sentiment', filters.sentiment);
-  }
+  useEffect(() => {
+    async function fetchCases() {
+      setLoading(true);
+      const supabase = createClient();
+      const offset = (page - 1) * PAGE_SIZE;
 
-  const { data, count, error } = await query;
+      let query = supabase
+        .from('cases')
+        .select('*', { count: 'exact' })
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
 
-  if (error) {
-    console.error('Error fetching cases:', error);
-    return { cases: [], total: 0 };
-  }
+      if (innovationType) query = query.eq('innovation_type', innovationType);
+      if (insuranceLine) query = query.eq('insurance_line', insuranceLine);
+      if (sentiment) query = query.eq('sentiment', sentiment);
 
-  return { cases: (data as Case[]) || [], total: count || 0 };
-}
+      const { data, count, error } = await query;
 
-export default async function CasesPage({ searchParams }: CasesPageProps) {
-  const params = await searchParams;
-  const { cases, total } = await getCases({
-    innovation_type: params.innovation_type,
-    insurance_line: params.insurance_line,
-    sentiment: params.sentiment,
-    page: params.page ? parseInt(params.page) : 1,
-  });
+      if (!error) {
+        setCases((data as Case[]) || []);
+        setTotal(count || 0);
+      }
+      setLoading(false);
+    }
+
+    fetchCases();
+  }, [innovationType, insuranceLine, sentiment, page]);
 
   return (
     <div className="min-h-screen">
-      <Suspense fallback={<div className="h-16 bg-white dark:bg-gray-900 border-b" />}>
-        <FilterBar />
-      </Suspense>
+      <FilterBar />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <CasesHeader total={total} />
 
-        {cases.length > 0 ? (
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-64 bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : cases.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {cases.map((caseData) => (
               <CaseCard key={caseData.id} caseData={caseData} />
@@ -81,6 +75,14 @@ export default async function CasesPage({ searchParams }: CasesPageProps) {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CasesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen animate-pulse" />}>
+      <CasesContent />
+    </Suspense>
   );
 }
 

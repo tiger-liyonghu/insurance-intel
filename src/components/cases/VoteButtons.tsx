@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface VoteButtonsProps {
   caseId: string;
@@ -52,27 +53,25 @@ export default function VoteButtons({ caseId, initialUpvotes, initialDownvotes, 
     setLoading(true);
 
     try {
-      const res = await fetch('/api/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          case_id: caseId,
-          vote_type: voteType,
-          fingerprint: getFingerprint(),
-        }),
-      });
+      const supabase = createClient();
+      const voterId = `anon_${getFingerprint()}`;
 
-      if (res.ok) {
-        const data = await res.json();
+      const { data: existingVote } = await supabase
+        .from('votes')
+        .select('id, vote_type')
+        .eq('case_id', caseId)
+        .eq('user_id', voterId)
+        .single();
 
-        if (userVote === voteType) {
-          // Toggle off
+      if (existingVote) {
+        if (existingVote.vote_type === voteType) {
+          await supabase.from('votes').delete().eq('id', existingVote.id);
           if (voteType === 1) setUpvotes((v) => v - 1);
           else setDownvotes((v) => v - 1);
           setUserVote(null);
           setLocalVote(caseId, null);
         } else {
-          // New vote or switch
+          await supabase.from('votes').update({ vote_type: voteType }).eq('id', existingVote.id);
           if (userVote === 1) setUpvotes((v) => v - 1);
           if (userVote === -1) setDownvotes((v) => v - 1);
           if (voteType === 1) setUpvotes((v) => v + 1);
@@ -80,8 +79,16 @@ export default function VoteButtons({ caseId, initialUpvotes, initialDownvotes, 
           setUserVote(voteType);
           setLocalVote(caseId, voteType);
         }
+      } else {
+        await supabase.from('votes').insert({ case_id: caseId, user_id: voterId, vote_type: voteType });
+        if (userVote === 1) setUpvotes((v) => v - 1);
+        if (userVote === -1) setDownvotes((v) => v - 1);
+        if (voteType === 1) setUpvotes((v) => v + 1);
+        else setDownvotes((v) => v + 1);
+        setUserVote(voteType);
+        setLocalVote(caseId, voteType);
       }
-    } catch (e) {
+    } catch {
       // Silently fail
     } finally {
       setLoading(false);

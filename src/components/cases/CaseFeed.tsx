@@ -38,7 +38,7 @@ export default function CaseFeed({ initialCases }: CaseFeedProps) {
         const SentimentIcon = c.sentiment === 'positive' ? TrendingUp : AlertTriangle;
 
         return (
-          <Link href={`/cases/${c.id}`} key={c.id} className="block">
+          <Link href={`/case?id=${c.id}`} key={c.id} className="block">
             <article className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all">
               {/* Header badges */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -100,7 +100,7 @@ export default function CaseFeed({ initialCases }: CaseFeedProps) {
                   />
                   <ShareMenu
                     title={headline || ''}
-                    url={typeof window !== 'undefined' ? `${window.location.origin}/cases/${c.id}` : `/cases/${c.id}`}
+                    url={typeof window !== 'undefined' ? `${window.location.origin}/case?id=${c.id}` : `/case?id=${c.id}`}
                     size="sm"
                   />
                 </div>

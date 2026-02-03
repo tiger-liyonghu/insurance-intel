@@ -47,7 +47,7 @@ export function CaseCard({ caseData, locale }: CaseCardProps) {
       </div>
 
       {/* Headline - clickable link */}
-      <Link href={`/cases/${caseData.id}`} className="group">
+      <Link href={`/case?id=${caseData.id}`} className="group">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
           {headline}
         </h3>
@@ -68,14 +68,14 @@ export function CaseCard({ caseData, locale }: CaseCardProps) {
             size="sm"
           />
           <Link
-            href={`/cases/${caseData.id}#comments`}
+            href={`/case?id=${caseData.id}#comments`}
             className="flex items-center gap-1 px-2 py-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all"
           >
             <MessageSquare className="w-3.5 h-3.5" />
             <span className="text-xs">0</span>
           </Link>
           <ShareMenu
-            url={`/cases/${caseData.id}`}
+            url={`/case?id=${caseData.id}`}
             title={headline}
             size="sm"
           />

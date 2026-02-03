@@ -1,78 +1,88 @@
-import { createClient } from '@/lib/supabase/server';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { MatrixGrid } from '@/components/cases/MatrixGrid';
 import { Case } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowRight, Calendar } from 'lucide-react';
 
-async function getTodaysCases(): Promise<Case[]> {
-  const supabase = await createClient();
+export default function MatrixPage() {
+  const [matrixCases, setMatrixCases] = useState<Case[]>([]);
+  const [todaysCases, setTodaysCases] = useState<Case[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get today's start
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  useEffect(() => {
+    async function fetchData() {
+      const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from('cases')
-    .select('*')
-    .eq('status', 'published')
-    .gte('published_at', today.toISOString())
-    .order('published_at', { ascending: false });
+      // Get today's start
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-  if (error) {
-    console.error('Error fetching today\'s cases:', error);
-    return [];
-  }
+      const { data: todayData } = await supabase
+        .from('cases')
+        .select('*')
+        .eq('status', 'published')
+        .gte('published_at', today.toISOString())
+        .order('published_at', { ascending: false });
 
-  return (data as Case[]) || [];
-}
+      const todayCases = (todayData as Case[]) || [];
+      setTodaysCases(todayCases);
 
-async function getLatestCasePerCell(): Promise<Case[]> {
-  const supabase = await createClient();
+      if (todayCases.length >= 9) {
+        setMatrixCases(todayCases);
+      } else {
+        // Get latest case for each matrix cell
+        const { data: latestData } = await supabase
+          .from('cases')
+          .select('*')
+          .eq('status', 'published')
+          .order('published_at', { ascending: false })
+          .limit(50);
 
-  // Get latest case for each matrix cell
-  const { data, error } = await supabase
-    .from('cases')
-    .select('*')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .limit(50);
+        const seenCells = new Set<string>();
+        const uniqueCases: Case[] = [];
+        for (const c of (latestData as Case[]) || []) {
+          const cellKey = `${c.innovation_type}-${c.insurance_line}`;
+          if (!seenCells.has(cellKey)) {
+            seenCells.add(cellKey);
+            uniqueCases.push(c);
+          }
+          if (uniqueCases.length >= 9) break;
+        }
+        setMatrixCases(uniqueCases);
+      }
 
-  if (error) {
-    console.error('Error fetching cases:', error);
-    return [];
-  }
-
-  // Deduplicate to get one per cell
-  const seenCells = new Set<string>();
-  const uniqueCases: Case[] = [];
-
-  for (const c of (data as Case[]) || []) {
-    const cellKey = `${c.innovation_type}-${c.insurance_line}`;
-    if (!seenCells.has(cellKey)) {
-      seenCells.add(cellKey);
-      uniqueCases.push(c);
+      setLoading(false);
     }
-    if (uniqueCases.length >= 9) break;
-  }
 
-  return uniqueCases;
-}
+    fetchData();
+  }, []);
 
-export default async function MatrixPage() {
-  const todaysCases = await getTodaysCases();
-  const matrixCases = todaysCases.length >= 9 ? todaysCases : await getLatestCasePerCell();
-
-  const today = new Date().toLocaleDateString('en-US', {
+  const todayStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-screen py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-12 w-64 mx-auto bg-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-96 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Innovation Matrix
@@ -82,38 +92,20 @@ export default async function MatrixPage() {
           </h1>
           <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
             <Calendar className="w-4 h-4" />
-            <span>{today}</span>
+            <span>{todayStr}</span>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-8">
-          <StatBox
-            label="Today's Cases"
-            labelZh="今日案例"
-            value={todaysCases.length}
-            target={9}
-          />
-          <StatBox
-            label="Positive"
-            labelZh="创新案例"
-            value={todaysCases.filter((c) => c.sentiment === 'positive').length}
-            color="green"
-          />
-          <StatBox
-            label="Warnings"
-            labelZh="警示案例"
-            value={todaysCases.filter((c) => c.sentiment === 'negative').length}
-            color="red"
-          />
+          <StatBox label="Today's Cases" labelZh="今日案例" value={todaysCases.length} target={9} />
+          <StatBox label="Positive" labelZh="创新案例" value={todaysCases.filter((c) => c.sentiment === 'positive').length} color="green" />
+          <StatBox label="Warnings" labelZh="警示案例" value={todaysCases.filter((c) => c.sentiment === 'negative').length} color="red" />
         </div>
 
-        {/* Matrix Grid */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-8">
           <MatrixGrid cases={matrixCases} locale="en" />
         </div>
 
-        {/* Legend */}
         <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-8">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -125,12 +117,8 @@ export default async function MatrixPage() {
           </div>
         </div>
 
-        {/* CTA */}
         <div className="text-center">
-          <Link
-            href="/cases"
-            className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium hover:underline"
-          >
+          <Link href="/cases" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium hover:underline">
             View Full Case Library
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -140,18 +128,8 @@ export default async function MatrixPage() {
   );
 }
 
-function StatBox({
-  label,
-  labelZh,
-  value,
-  target,
-  color,
-}: {
-  label: string;
-  labelZh: string;
-  value: number;
-  target?: number;
-  color?: 'green' | 'red';
+function StatBox({ label, labelZh, value, target, color }: {
+  label: string; labelZh: string; value: number; target?: number; color?: 'green' | 'red';
 }) {
   const colorClass = color === 'green'
     ? 'text-green-600 dark:text-green-400'

@@ -104,7 +104,7 @@ function MatrixCellCard({ cell, locale }: { cell: MatrixCell; locale: 'en' | 'zh
   const sentimentColor = caseData.sentiment === 'positive' ? 'border-green-400' : 'border-red-400';
 
   return (
-    <Link href={`/cases/${caseData.id}`}>
+    <Link href={`/case?id=${caseData.id}`}>
       <div
         className={`h-32 bg-white dark:bg-gray-900 rounded-lg border-l-4 ${sentimentColor} shadow-sm hover:shadow-md transition-shadow p-3 flex flex-col`}
       >

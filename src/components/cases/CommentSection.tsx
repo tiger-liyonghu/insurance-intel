@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
+import { createClient } from '@/lib/supabase/client';
 
 interface Comment {
   id: string;
@@ -55,10 +56,15 @@ export default function CommentSection({ caseId }: { caseId: string }) {
 
   async function fetchComments() {
     try {
-      const res = await fetch(`/api/comment?case_id=${caseId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const all: Comment[] = data.comments || [];
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('case_id', caseId)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        const all: Comment[] = data as Comment[];
         const topLevel = all.filter((c) => !c.parent_id);
         const replies = all.filter((c) => c.parent_id);
         topLevel.forEach((c) => {
@@ -75,18 +81,17 @@ export default function CommentSection({ caseId }: { caseId: string }) {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/comment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('comments')
+        .insert({
           case_id: caseId,
+          nickname: nickname.trim(),
           content: content.trim(),
-          nickname: nickname,
-          parent_id: replyTo,
-        }),
-      });
+          parent_id: replyTo || null,
+        });
 
-      if (res.ok) {
+      if (!error) {
         setContent('');
         setReplyTo(null);
         fetchComments();
@@ -109,7 +114,6 @@ export default function CommentSection({ caseId }: { caseId: string }) {
 
       {expanded && (
         <div className="mt-4 space-y-4">
-          {/* Comment form */}
           <form onSubmit={handleSubmit} className="space-y-2">
             <div className="flex gap-2">
               <input
@@ -142,7 +146,6 @@ export default function CommentSection({ caseId }: { caseId: string }) {
             </div>
           </form>
 
-          {/* Comments list */}
           <div className="space-y-3">
             {comments.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-4">
@@ -168,7 +171,6 @@ export default function CommentSection({ caseId }: { caseId: string }) {
                     {t('Reply', '回复')}
                   </button>
                 </div>
-                {/* Replies */}
                 {comment.replies && comment.replies.length > 0 && (
                   <div className="ml-6 space-y-2">
                     {comment.replies.map((reply) => (

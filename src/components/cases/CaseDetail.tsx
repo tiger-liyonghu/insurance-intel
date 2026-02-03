@@ -80,7 +80,7 @@ export function CaseDetail({ caseData }: CaseDetailProps) {
             size="md"
           />
           <ShareMenu
-            url={typeof window !== 'undefined' ? window.location.href : `/cases/${caseData.id}`}
+            url={typeof window !== 'undefined' ? window.location.href : `/case?id=${caseData.id}`}
             title={headline}
           />
         </div>

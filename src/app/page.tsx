@@ -1,56 +1,63 @@
-import { createClient } from '@/lib/supabase/server';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import CaseFeed from '@/components/cases/CaseFeed';
 import HeroSection from '@/components/layout/HeroSection';
 import type { Case } from '@/lib/types';
 
-export const revalidate = 60;
+export default function Home() {
+  const [cases, setCases] = useState<Case[]>([]);
+  const [stats, setStats] = useState({ totalCases: 0, totalSources: 0 });
+  const [loading, setLoading] = useState(true);
 
-async function getRecentCases(): Promise<Case[]> {
-  const supabase = await createClient();
+  useEffect(() => {
+    async function fetchData() {
+      const supabase = createClient();
 
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // Fetch recent published cases
+      const { data: recentCases } = await supabase
+        .from('cases')
+        .select('*')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(20);
 
-  let { data: cases } = await supabase
-    .from('cases')
-    .select('*')
-    .eq('status', 'published')
-    .gte('published_at', twentyFourHoursAgo)
-    .order('published_at', { ascending: false });
+      setCases((recentCases as Case[]) || []);
 
-  if (!cases || cases.length === 0) {
-    const { data: recentCases } = await supabase
-      .from('cases')
-      .select('*')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false })
-      .limit(20);
-    cases = recentCases;
+      // Fetch stats
+      const { count: totalCases } = await supabase
+        .from('cases')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'published');
+
+      const { count: totalSources } = await supabase
+        .from('sources')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      setStats({
+        totalCases: totalCases || 0,
+        totalSources: totalSources || 0,
+      });
+
+      setLoading(false);
+    }
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-24 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+          <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+          <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+        </div>
+      </div>
+    );
   }
-
-  return (cases || []) as Case[];
-}
-
-async function getStats() {
-  const supabase = await createClient();
-
-  const { count: totalCases } = await supabase
-    .from('cases')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'published');
-
-  const { count: totalSources } = await supabase
-    .from('sources')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'active');
-
-  return {
-    totalCases: totalCases || 0,
-    totalSources: totalSources || 0,
-  };
-}
-
-export default async function Home() {
-  const [cases, stats] = await Promise.all([getRecentCases(), getStats()]);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">

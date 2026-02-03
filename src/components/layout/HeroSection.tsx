@@ -1,6 +1,7 @@
 'use client';
 
 import { useLanguage } from '@/lib/language-context';
+import { Newspaper, Database, Zap } from 'lucide-react';
 
 interface HeroSectionProps {
   todayCount: number;
@@ -12,32 +13,30 @@ export default function HeroSection({ todayCount, totalCases, totalSources }: He
   const { t } = useLanguage();
 
   return (
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-        {t('Insurance Innovation Intelligence', '保险创新情报')}
-      </h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-        {t(
-          'Daily curated insights across the 3×3 innovation matrix',
-          '全球保险创新情报 — 每日精选 3×3 创新矩阵洞察'
-        )}
-      </p>
-
-      {/* Stats bar */}
-      <div className="flex items-center gap-6 mt-3 text-sm">
-        <Stat label={t('Today', '今日')} value={todayCount} />
-        <Stat label={t('Total', '总计')} value={totalCases} />
-        <Stat label={t('Sources', '信息源')} value={totalSources} />
+    <div className="mb-8">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Zap className="w-4 h-4 text-blue-500" />
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('Latest', '\u6700\u65b0')}</span>
+          </div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{todayCount}</div>
+        </div>
+        <div className="rounded-xl p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Newspaper className="w-4 h-4 text-indigo-500" />
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('Total', '\u603b\u8ba1')}</span>
+          </div>
+          <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{totalCases}</div>
+        </div>
+        <div className="rounded-xl p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/40">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Database className="w-4 h-4 text-purple-500" />
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('Sources', '\u4fe1\u606f\u6e90')}</span>
+          </div>
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{totalSources}</div>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{value}</span>
-      <span className="text-gray-500 dark:text-gray-400 text-xs">{label}</span>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   SENTIMENTS,
 } from '@/lib/types';
 import { formatRelativeTime, truncate } from '@/lib/utils';
-import { MessageSquare, ExternalLink } from 'lucide-react';
+import { ExternalLink, ArrowRight } from 'lucide-react';
 import VoteButtons from '@/components/cases/VoteButtons';
 import ShareMenu from '@/components/ui/ShareMenu';
 import { useLanguage } from '@/lib/language-context';
@@ -20,7 +20,7 @@ interface CaseCardProps {
 }
 
 export function CaseCard({ caseData, locale }: CaseCardProps) {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const displayLocale = locale || lang;
 
   const innovationType = INNOVATION_TYPES[caseData.innovation_type];
@@ -29,92 +29,104 @@ export function CaseCard({ caseData, locale }: CaseCardProps) {
 
   const headline = displayLocale === 'zh' ? caseData.headline_zh : caseData.headline_en;
   const analysis = displayLocale === 'zh' ? caseData.analysis_zh : caseData.analysis_en;
-  const summary = truncate(analysis?.layer1 || '', 150);
+  const layer1 = analysis?.layer1 || '';
+  const layer2 = analysis?.layer2 || '';
 
   return (
-    <article className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200">
-      {/* Tags */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        <Badge variant={innovationType.color as 'blue' | 'green' | 'purple'}>
-          {displayLocale === 'zh' ? innovationType.zh : innovationType.en}
-        </Badge>
-        <Badge variant={insuranceLine.color as 'orange' | 'red' | 'teal'}>
-          {displayLocale === 'zh' ? insuranceLine.zh : insuranceLine.en}
-        </Badge>
-        <Badge variant={sentiment.color as 'green' | 'red'}>
-          {sentiment.icon} {displayLocale === 'zh' ? sentiment.zh : sentiment.en}
-        </Badge>
-      </div>
+    <article className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 overflow-hidden flex flex-col">
+      {/* Sentiment accent bar */}
+      <div className={`h-1 ${caseData.sentiment === 'positive' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-red-400 to-orange-500'}`} />
 
-      {/* Headline - clickable link */}
-      <Link href={`/case?id=${caseData.id}`} className="group">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
-          {headline}
-        </h3>
-      </Link>
-
-      {/* Summary */}
-      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-        {summary}
-      </p>
-
-      {/* Interactive buttons */}
-      <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-500">
-        <div className="flex items-center gap-3">
-          <VoteButtons
-            caseId={caseData.id}
-            initialUpvotes={caseData.upvotes}
-            initialDownvotes={caseData.downvotes}
-            size="sm"
-          />
-          <Link
-            href={`/case?id=${caseData.id}#comments`}
-            className="flex items-center gap-1 px-2 py-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 transition-all"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span className="text-xs">0</span>
-          </Link>
-          <ShareMenu
-            url={`/case?id=${caseData.id}`}
-            title={headline}
-            size="sm"
-          />
+      <div className="p-5 flex flex-col flex-1">
+        {/* Top: badges + time */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex flex-wrap gap-1.5">
+            <Badge variant={innovationType.color as 'blue' | 'green' | 'purple'} size="sm">
+              {displayLocale === 'zh' ? innovationType.zh : innovationType.en}
+            </Badge>
+            <Badge variant={insuranceLine.color as 'orange' | 'red' | 'teal'} size="sm">
+              {displayLocale === 'zh' ? insuranceLine.zh : insuranceLine.en}
+            </Badge>
+          </div>
+          <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+            {formatRelativeTime(caseData.published_at || caseData.created_at, displayLocale)}
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Region */}
-          <span className="uppercase text-xs">{caseData.region}</span>
+        {/* Headline */}
+        <Link href={`/case?id=${caseData.id}`} className="block mb-3">
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
+            {headline}
+          </h3>
+        </Link>
 
-          {/* Date */}
-          <span className="text-xs">{formatRelativeTime(caseData.published_at || caseData.created_at, displayLocale)}</span>
+        {/* Layer 1 summary - full display */}
+        {layer1 && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed line-clamp-4">
+            {layer1}
+          </p>
+        )}
 
-          {/* Source link indicator */}
-          {caseData.source_urls.length > 0 && (
-            <ExternalLink className="w-3.5 h-3.5" />
-          )}
-        </div>
-      </div>
+        {/* Layer 2 preview */}
+        {layer2 && (
+          <p className="text-xs text-gray-500 dark:text-gray-500 mb-3 leading-relaxed line-clamp-2 italic border-l-2 border-gray-200 dark:border-gray-700 pl-3">
+            {truncate(layer2, 120)}
+          </p>
+        )}
 
-      {/* Companies */}
-      {caseData.company_names.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-          <div className="flex flex-wrap gap-1">
+        {/* Companies */}
+        {caseData.company_names.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {caseData.company_names.slice(0, 3).map((company) => (
               <span
                 key={company}
-                className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded"
+                className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md font-medium"
               >
                 {company}
               </span>
             ))}
             {caseData.company_names.length > 3 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-400">
                 +{caseData.company_names.length - 3}
               </span>
             )}
           </div>
+        )}
+
+        {/* Spacer to push footer down */}
+        <div className="flex-1" />
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2">
+            <VoteButtons
+              caseId={caseData.id}
+              initialUpvotes={caseData.upvotes}
+              initialDownvotes={caseData.downvotes}
+              size="sm"
+            />
+            <ShareMenu
+              url={`/case?id=${caseData.id}`}
+              title={headline}
+              size="sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="uppercase text-xs text-gray-400 font-medium">{caseData.region}</span>
+            {caseData.source_urls.length > 0 && (
+              <ExternalLink className="w-3 h-3 text-gray-400" />
+            )}
+            <Link
+              href={`/case?id=${caseData.id}`}
+              className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-0.5 font-medium"
+            >
+              {t('Read', '\u8be6\u60c5')}
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
         </div>
-      )}
+      </div>
     </article>
   );
 }

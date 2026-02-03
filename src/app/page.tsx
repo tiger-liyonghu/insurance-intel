@@ -15,7 +15,6 @@ export default function Home() {
     async function fetchData() {
       const supabase = createClient();
 
-      // Fetch recent published cases
       const { data: recentCases } = await supabase
         .from('cases')
         .select('*')
@@ -25,7 +24,6 @@ export default function Home() {
 
       setCases((recentCases as Case[]) || []);
 
-      // Fetch stats
       const { count: totalCases } = await supabase
         .from('cases')
         .select('*', { count: 'exact', head: true })
@@ -49,18 +47,23 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-24 bg-gray-200 dark:bg-gray-800 rounded-lg" />
-          <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded-lg" />
-          <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="h-20 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+            <div className="h-20 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+            <div className="h-20 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+          </div>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-52 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-6">
       <HeroSection
         todayCount={cases.length}
         totalCases={stats.totalCases}

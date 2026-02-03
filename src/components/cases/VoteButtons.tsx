@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ThumbsUp, Heart } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface VoteButtonsProps {
@@ -117,12 +117,11 @@ export default function VoteButtons({ caseId, initialUpvotes, initialDownvotes, 
         disabled={loading}
         className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
           userVote === -1
-            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600'
+            ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400'
+            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-pink-500'
         }`}
       >
-        <ThumbsDown size={iconSize} />
-        <span className={textSize}>{downvotes}</span>
+        <Heart size={iconSize} fill={userVote === -1 ? 'currentColor' : 'none'} />
       </button>
     </div>
   );

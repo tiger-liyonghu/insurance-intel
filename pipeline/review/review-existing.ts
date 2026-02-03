@@ -16,13 +16,16 @@ Insurance Line: {insurance_line}
 Analysis Layer 1 (EN): {layer1}
 
 ## Question
-Is this a SPECIFIC, CONCRETE innovation case about a product, technology, service, or customer experience?
+Does this represent a STRUCTURAL SHIFT in insurance logic — a significant change in who insures, what is insured, how it's priced, who sells it, or how it pays out?
 
 KEEP if it describes:
-- A specific new insurance product with concrete features
-- A specific technology deployment (AI claims, telematics, digital underwriting, etc.)
-- A specific customer experience improvement (digital onboarding, instant claims, etc.)
-- A specific new distribution/marketing approach (embedded insurance, partnerships, etc.)
+- A new risk category previously deemed "uninsurable" (boundary expansion)
+- Dynamic/real-time pricing driven by IoT, sensors, or AI (pricing evolution)
+- Insurance bundled with prevention/service delivery (prevention-as-product)
+- Parametric, smart contract, or non-cash payout mechanisms (payout innovation)
+- Embedded insurance in non-insurance platforms (contextual distribution)
+- Non-traditional players entering insurance (distribution shift)
+- AI-driven hyper-personalization or behavioral incentive loops
 
 REJECT if it is:
 - M&A / acquisition / merger news

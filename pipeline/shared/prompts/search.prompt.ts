@@ -5,7 +5,7 @@ You must respond ONLY with valid JSON matching the specified schema.`;
 export const GENERATE_SEARCH_QUERIES_PROMPT = `Generate search queries to find insurance innovation news and cases.
 
 ## Current Coverage Gaps
-Based on our 3x3 matrix, we need to find cases in these areas:
+Based on our 2x3 matrix (product/marketing × property/health/life), we need to find cases in these areas:
 {coverage_gaps}
 
 ## Date Range
@@ -27,7 +27,7 @@ Focus on news from the past {days} days.
       "query": string,
       "language": string,
       "target_matrix_cell": {
-        "innovation_type": "product" | "marketing" | "cx",
+        "innovation_type": "product" | "marketing",
         "insurance_line": "property" | "health" | "life"
       } | null,
       "region": string | null,

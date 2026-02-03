@@ -17,7 +17,7 @@ interface SearchQuery {
   query: string;
   language: string;
   target_matrix_cell: {
-    innovation_type: 'product' | 'marketing' | 'cx';
+    innovation_type: 'product' | 'marketing';
     insurance_line: 'property' | 'health' | 'life';
   } | null;
   region: string | null;
@@ -55,7 +55,6 @@ async function getCoverageGaps(): Promise<string> {
   const cells = [
     'product-property', 'product-health', 'product-life',
     'marketing-property', 'marketing-health', 'marketing-life',
-    'cx-property', 'cx-health', 'cx-life',
   ];
 
   for (const cell of cells) {
@@ -113,17 +112,20 @@ async function generateSearchQueries(): Promise<SearchQuery[]> {
  */
 function getDefaultSearchQueries(): SearchQuery[] {
   return [
-    // English queries
-    { query: 'insurtech launch 2026', language: 'en', target_matrix_cell: null, region: null, priority: 'high' },
-    { query: 'insurance AI claims automation', language: 'en', target_matrix_cell: { innovation_type: 'cx', insurance_line: 'property' }, region: null, priority: 'high' },
-    { query: 'embedded insurance partnership', language: 'en', target_matrix_cell: { innovation_type: 'marketing', insurance_line: 'property' }, region: null, priority: 'medium' },
-    { query: 'health insurance wearable technology', language: 'en', target_matrix_cell: { innovation_type: 'product', insurance_line: 'health' }, region: null, priority: 'medium' },
-    { query: 'life insurance digital underwriting', language: 'en', target_matrix_cell: { innovation_type: 'cx', insurance_line: 'life' }, region: null, priority: 'medium' },
+    // English queries — product innovation
+    { query: 'parametric insurance smart contract 2026', language: 'en', target_matrix_cell: { innovation_type: 'product', insurance_line: 'property' }, region: null, priority: 'high' },
+    { query: 'health insurance prevention service bundle wearable', language: 'en', target_matrix_cell: { innovation_type: 'product', insurance_line: 'health' }, region: null, priority: 'high' },
+    { query: 'dynamic pricing IoT insurance real-time', language: 'en', target_matrix_cell: { innovation_type: 'product', insurance_line: 'property' }, region: null, priority: 'medium' },
+    { query: 'life insurance instant underwriting AI', language: 'en', target_matrix_cell: { innovation_type: 'product', insurance_line: 'life' }, region: null, priority: 'medium' },
+
+    // English queries — marketing innovation
+    { query: 'embedded insurance platform partnership 2026', language: 'en', target_matrix_cell: { innovation_type: 'marketing', insurance_line: 'property' }, region: null, priority: 'high' },
+    { query: 'Tesla Amazon insurance non-traditional insurer', language: 'en', target_matrix_cell: { innovation_type: 'marketing', insurance_line: 'property' }, region: null, priority: 'medium' },
 
     // Chinese queries
-    { query: '保险科技 创新 2026', language: 'zh', target_matrix_cell: null, region: 'china', priority: 'high' },
-    { query: '健康险 数字化 创新', language: 'zh', target_matrix_cell: { innovation_type: 'product', insurance_line: 'health' }, region: 'china', priority: 'medium' },
-    { query: '保险 理赔 AI 人工智能', language: 'zh', target_matrix_cell: { innovation_type: 'cx', insurance_line: 'property' }, region: 'china', priority: 'medium' },
+    { query: '参数保险 智能合约 2026', language: 'zh', target_matrix_cell: { innovation_type: 'product', insurance_line: 'property' }, region: 'china', priority: 'high' },
+    { query: '嵌入式保险 场景化 平台合作', language: 'zh', target_matrix_cell: { innovation_type: 'marketing', insurance_line: 'property' }, region: 'china', priority: 'medium' },
+    { query: '健康险 预防服务 可穿戴设备', language: 'zh', target_matrix_cell: { innovation_type: 'product', insurance_line: 'health' }, region: 'china', priority: 'medium' },
   ];
 }
 

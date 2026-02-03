@@ -50,7 +50,7 @@ export function CaseDetail({ caseData }: CaseDetailProps) {
         <div className="p-6">
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-4">
-            <Badge variant={innovationType.color as 'blue' | 'green' | 'purple'} size="md">
+            <Badge variant={innovationType.color as 'blue' | 'green'} size="md">
               {lang === 'zh' ? innovationType.zh : innovationType.en}
             </Badge>
             <Badge variant={insuranceLine.color as 'orange' | 'red' | 'teal'} size="md">

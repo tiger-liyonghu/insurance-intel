@@ -1,4 +1,4 @@
-export type InnovationType = 'product' | 'marketing' | 'cx';
+export type InnovationType = 'product' | 'marketing';
 export type InsuranceLine = 'property' | 'health' | 'life';
 export type SentimentType = 'positive' | 'negative';
 export type CaseStatus = 'ready' | 'published' | 'pending_supplement';
@@ -59,7 +59,6 @@ export interface Vote {
 export const INNOVATION_TYPES: Record<InnovationType, { en: string; zh: string; color: string }> = {
   product: { en: 'Product', zh: '产品创新', color: 'blue' },
   marketing: { en: 'Marketing', zh: '营销创新', color: 'green' },
-  cx: { en: 'Customer Experience', zh: '客户体验创新', color: 'purple' },
 };
 
 export const INSURANCE_LINES: Record<InsuranceLine, { en: string; zh: string; color: string }> = {

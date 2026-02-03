@@ -41,7 +41,7 @@ export function CaseCard({ caseData, locale }: CaseCardProps) {
         {/* Top: badges + time */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex flex-wrap gap-1.5">
-            <Badge variant={innovationType.color as 'blue' | 'green' | 'purple'} size="sm">
+            <Badge variant={innovationType.color as 'blue' | 'green'} size="sm">
               {displayLocale === 'zh' ? innovationType.zh : innovationType.en}
             </Badge>
             <Badge variant={insuranceLine.color as 'orange' | 'red' | 'teal'} size="sm">

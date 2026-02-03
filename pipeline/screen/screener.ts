@@ -18,7 +18,7 @@ interface ScreeningOutput {
   gate2_score: number;
   gate2_reason: string;
   gate3_classification: {
-    innovation_type: 'product' | 'marketing' | 'cx';
+    innovation_type: 'product' | 'marketing';
     insurance_line: 'property' | 'health' | 'life';
     sentiment: 'positive' | 'negative';
   } | null;

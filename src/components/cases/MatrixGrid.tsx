@@ -23,7 +23,7 @@ type MatrixCell = {
 
 export function MatrixGrid({ cases, locale = 'en' }: MatrixGridProps) {
   // Build matrix data
-  const innovationTypes: InnovationType[] = ['product', 'marketing', 'cx'];
+  const innovationTypes: InnovationType[] = ['product', 'marketing'];
   const insuranceLines: InsuranceLine[] = ['property', 'health', 'life'];
 
   const getCaseForCell = (it: InnovationType, il: InsuranceLine): Case | null => {
@@ -52,7 +52,7 @@ export function MatrixGrid({ cases, locale = 'en' }: MatrixGridProps) {
               const typeInfo = INNOVATION_TYPES[it];
               return (
                 <th key={it} className="p-3 text-center">
-                  <Badge variant={typeInfo.color as 'blue' | 'green' | 'purple'} size="md">
+                  <Badge variant={typeInfo.color as 'blue' | 'green'} size="md">
                     {locale === 'zh' ? typeInfo.zh : typeInfo.en}
                   </Badge>
                 </th>

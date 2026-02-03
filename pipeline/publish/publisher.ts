@@ -12,7 +12,7 @@ import { logger } from '../shared/utils';
 const DAILY_TARGET = 20; // Publish up to 20 cases per run
 
 interface MatrixCell {
-  innovation_type: 'product' | 'marketing' | 'cx';
+  innovation_type: 'product' | 'marketing';
   insurance_line: 'property' | 'health' | 'life';
 }
 
@@ -23,9 +23,6 @@ const MATRIX_CELLS: MatrixCell[] = [
   { innovation_type: 'marketing', insurance_line: 'property' },
   { innovation_type: 'marketing', insurance_line: 'health' },
   { innovation_type: 'marketing', insurance_line: 'life' },
-  { innovation_type: 'cx', insurance_line: 'property' },
-  { innovation_type: 'cx', insurance_line: 'health' },
-  { innovation_type: 'cx', insurance_line: 'life' },
 ];
 
 /**

@@ -50,7 +50,7 @@ export default function CaseFeed({ initialCases }: CaseFeedProps) {
               {/* Header: badges + time */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 {innovationType && (
-                  <Badge variant={innovationType.color as 'blue' | 'green' | 'purple'} size="sm">
+                  <Badge variant={innovationType.color as 'blue' | 'green'} size="sm">
                     {lang === 'en' ? innovationType.en : innovationType.zh}
                   </Badge>
                 )}

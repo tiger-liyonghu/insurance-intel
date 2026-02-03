@@ -313,37 +313,3 @@ export function getModel(type: 'pro' | 'flash' = 'pro'): GenerativeModel {
   return model;
 }
 
-// Rate limiting helper (kept for backwards compatibility)
-const requestQueue: Array<() => Promise<void>> = [];
-let isProcessing = false;
-const MIN_INTERVAL_MS = 500; // Reduced since DeepSeek has better rate limits
-
-async function processQueue(): Promise<void> {
-  if (isProcessing || requestQueue.length === 0) return;
-
-  isProcessing = true;
-
-  while (requestQueue.length > 0) {
-    const request = requestQueue.shift();
-    if (request) {
-      await request();
-      await new Promise((resolve) => setTimeout(resolve, MIN_INTERVAL_MS));
-    }
-  }
-
-  isProcessing = false;
-}
-
-export async function rateLimitedRequest<T>(request: () => Promise<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    requestQueue.push(async () => {
-      try {
-        const result = await request();
-        resolve(result);
-      } catch (error) {
-        reject(error);
-      }
-    });
-    processQueue();
-  });
-}

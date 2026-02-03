@@ -102,7 +102,7 @@ export async function runScreeningPipeline(): Promise<{
     logger.info('=== Starting Screening Pipeline ===');
 
     // Get pending items
-    const pendingItems = await getPendingRawItems(100);
+    const pendingItems = await getPendingRawItems(500);
 
     if (pendingItems.length === 0) {
       logger.info('No pending items to screen');
@@ -113,7 +113,7 @@ export async function runScreeningPipeline(): Promise<{
     logger.info(`Found ${pendingItems.length} items to screen`);
 
     // Process in batches to manage rate limits
-    const batches = batch(pendingItems, 5);
+    const batches = batch(pendingItems, 15);
 
     for (let i = 0; i < batches.length; i++) {
       const batchItems = batches[i];
@@ -161,7 +161,7 @@ export async function runScreeningPipeline(): Promise<{
 
       // Rate limiting between batches
       if (i < batches.length - 1) {
-        await sleep(2000);
+        await sleep(500);
       }
     }
 

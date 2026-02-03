@@ -4,7 +4,7 @@ import {
   Source,
   insertRawItem,
   updateSourceLastChecked,
-  checkDuplicateContent,
+  checkDuplicateContentBatch,
 } from '../shared/supabase';
 import {
   generateContentHash,
@@ -13,6 +13,7 @@ import {
   logger,
   retry,
   sleep,
+  batch as batchArray,
 } from '../shared/utils';
 
 interface ScrapedItem {
@@ -46,6 +47,7 @@ async function fetchHTML(url: string): Promise<string> {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5,zh-CN;q=0.3',
     },
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!response.ok) {
@@ -235,7 +237,8 @@ export async function collectFromWebSource(source: Source): Promise<CollectionRe
     const html = await retry(
       () => fetchHTML(source.url),
       {
-        maxRetries: 3,
+        maxRetries: 2,
+        baseDelay: 500,
         onError: (error, attempt) => {
           logger.warn(`Fetch attempt ${attempt} failed for ${source.name}: ${error.message}`);
         },
@@ -252,43 +255,46 @@ export async function collectFromWebSource(source: Source): Promise<CollectionRe
 
     logger.info(`Found ${items.length} items on ${source.name}`);
 
-    for (const item of items) {
-      try {
-        // Clean content
+    // Pre-process all items: clean, hash, filter
+    const processed = items
+      .map(item => {
         const cleanedTitle = cleanContent(item.title);
         const cleanedContent = cleanContent(item.content);
-
-        // Skip items with very short titles
-        if (cleanedTitle.length < 10) {
-          result.itemsSkipped++;
-          continue;
-        }
-
-        // Generate content hash for deduplication
         const contentHash = generateContentHash(cleanedContent + item.url);
-
-        // Check for duplicates
-        const isDuplicate = await checkDuplicateContent(contentHash);
-        if (isDuplicate) {
+        return { ...item, cleanedTitle, cleanedContent, contentHash };
+      })
+      .filter(item => {
+        if (item.cleanedTitle.length < 10) {
           result.itemsSkipped++;
-          continue;
+          return false;
         }
+        return true;
+      });
 
-        // Detect language
-        const language = detectLanguage(cleanedTitle + ' ' + cleanedContent);
+    // Batch dedup check
+    const hashes = processed.map(p => p.contentHash);
+    const existingHashes = await checkDuplicateContentBatch(hashes);
 
-        // Insert raw item
+    for (const item of processed) {
+      if (existingHashes.has(item.contentHash)) {
+        result.itemsSkipped++;
+        continue;
+      }
+
+      try {
+        const language = detectLanguage(item.cleanedTitle + ' ' + item.cleanedContent);
+
         await insertRawItem({
           source_id: source.id,
           source_url: item.url,
-          title: cleanedTitle,
-          content: cleanedContent,
+          title: item.cleanedTitle,
+          content: item.cleanedContent,
           language: language,
-          content_hash: contentHash,
+          content_hash: item.contentHash,
         });
 
         result.itemsCollected++;
-        logger.debug(`Collected: ${cleanedTitle.slice(0, 50)}...`);
+        logger.debug(`Collected: ${item.cleanedTitle.slice(0, 50)}...`);
       } catch (error) {
         const errorMessage = `Error processing item "${item.title.slice(0, 30)}...": ${(error as Error).message}`;
         result.errors.push(errorMessage);
@@ -345,16 +351,31 @@ export async function collectAllWebsites(): Promise<{
   let totalSkipped = 0;
   let totalErrors = 0;
 
-  // Process sources sequentially with delays to be polite
-  for (const source of sources) {
-    const result = await collectFromWebSource(source as Source);
-    results.push(result);
-    totalCollected += result.itemsCollected;
-    totalSkipped += result.itemsSkipped;
-    totalErrors += result.errors.length;
+  // Process sources in concurrent batches of 10
+  const sourceBatches = batchArray(sources, 10);
+  for (let i = 0; i < sourceBatches.length; i++) {
+    const sourceBatch = sourceBatches[i];
+    logger.info(`Source batch ${i + 1}/${sourceBatches.length} (${sourceBatch.length} sources)`);
 
-    // Longer delay between websites to be respectful
-    await sleep(2000);
+    const batchResults = await Promise.allSettled(
+      sourceBatch.map(source => collectFromWebSource(source as Source))
+    );
+
+    for (const br of batchResults) {
+      if (br.status === 'fulfilled') {
+        results.push(br.value);
+        totalCollected += br.value.itemsCollected;
+        totalSkipped += br.value.itemsSkipped;
+        totalErrors += br.value.errors.length;
+      } else {
+        totalErrors++;
+        logger.error(`Source batch error: ${br.reason}`);
+      }
+    }
+
+    if (i < sourceBatches.length - 1) {
+      await sleep(500);
+    }
   }
 
   logger.info(

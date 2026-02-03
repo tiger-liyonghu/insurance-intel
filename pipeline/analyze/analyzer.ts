@@ -37,7 +37,7 @@ interface QualityCheckResult {
   ready_for_publication: boolean;
 }
 
-const BATCH_SIZE = 3; // Process 3 items in parallel
+const BATCH_SIZE = 8; // Process 8 items in parallel
 
 /**
  * Perform deep analysis (the core AI call)
@@ -200,7 +200,7 @@ export async function runAnalysisPipeline(): Promise<{
   try {
     logger.info('=== Starting Analysis Pipeline ===');
 
-    const items = await getPassedItemsWithoutCase(20);
+    const items = await getPassedItemsWithoutCase(300);
 
     if (items.length === 0) {
       logger.info('No items to analyze');
@@ -244,7 +244,7 @@ export async function runAnalysisPipeline(): Promise<{
 
       // Brief pause between batches
       if (batchIndex < batches.length - 1) {
-        await sleep(1000);
+        await sleep(500);
       }
     }
 

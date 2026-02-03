@@ -9,7 +9,7 @@ import {
 } from '../shared/supabase';
 import { logger } from '../shared/utils';
 
-const DAILY_TARGET = 20; // Publish up to 20 cases per run
+const DAILY_TARGET = 200; // Publish up to 200 cases per run
 
 interface MatrixCell {
   innovation_type: 'product' | 'marketing';

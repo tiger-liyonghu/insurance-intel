@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 config({ path: resolve(process.cwd(), '.env.local'), override: true });
 
-import { insertRawItem, checkDuplicateContent, getSupabaseClient } from '../shared/supabase';
+import { insertRawItem, checkDuplicateContentBatch, getSupabaseClient } from '../shared/supabase';
 import { generateContentHash, detectLanguage, cleanContent, logger } from '../shared/utils';
 
 /**
@@ -124,26 +124,34 @@ async function main() {
     const items = await fetchAndExtract(url);
     logger.info(`Found ${items.length} potential articles`);
 
-    for (const item of items.slice(0, 15)) { // Max 15 per source
+    const limited = items.slice(0, 15); // Max 15 per source
+
+    // Pre-compute hashes and batch dedup
+    const prepared = limited.map(item => {
+      const content = cleanContent(item.content || item.title);
+      const contentHash = generateContentHash(content + item.link);
+      return { ...item, content, contentHash };
+    });
+
+    const hashes = prepared.map(p => p.contentHash);
+    const existingHashes = await checkDuplicateContentBatch(hashes);
+
+    for (const item of prepared) {
+      if (existingHashes.has(item.contentHash)) {
+        totalSkipped++;
+        continue;
+      }
+
       try {
-        const content = cleanContent(item.content || item.title);
-        const contentHash = generateContentHash(content + item.link);
-        const isDuplicate = await checkDuplicateContent(contentHash);
-
-        if (isDuplicate) {
-          totalSkipped++;
-          continue;
-        }
-
         const language = detectLanguage(item.title);
 
         await insertRawItem({
           source_id: sourceId,
           source_url: item.link,
           title: cleanContent(item.title),
-          content: content,
+          content: item.content,
           language: language,
-          content_hash: contentHash,
+          content_hash: item.contentHash,
         });
 
         totalCollected++;
@@ -154,7 +162,7 @@ async function main() {
     }
 
     // Small delay
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   logger.info(`\n=== Targeted Search Complete ===`);

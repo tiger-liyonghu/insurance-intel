@@ -2,8 +2,8 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 config({ path: resolve(process.cwd(), '.env.local'), override: true });
 
-import { insertRawItem, checkDuplicateContent, getSupabaseClient } from '../shared/supabase';
-import { generateContentHash, detectLanguage, cleanContent, logger } from '../shared/utils';
+import { insertRawItem, checkDuplicateContentBatch, getSupabaseClient } from '../shared/supabase';
+import { generateContentHash, detectLanguage, cleanContent, logger, batch as batchArray } from '../shared/utils';
 
 /**
  * Use fetch to get real article content from specific URLs
@@ -79,6 +79,75 @@ const SEARCH_QUERIES = [
   // Portuguese - Pesquisa em português
   'seguro inovação produto digital 2025 2026',
   'insurtech brasil novo produto lançamento',
+  // === Round 2: Delta Logic structural shift queries ===
+  // Product - Boundary Expansion
+  'insurance pre-existing conditions coverage innovation',
+  'virtual asset crypto insurance product 2025 2026',
+  'climate risk indirect loss insurance new',
+  'mental health insurance innovation digital therapy',
+  'cross-border medical insurance seamless product',
+  'supply chain insurance parametric cargo',
+  // Product - Pricing Evolution
+  'real-time dynamic insurance pricing IoT sensor',
+  'satellite imagery crop insurance pricing',
+  'AI behavioral insurance pricing model',
+  'biometric data health insurance premium',
+  'connected car insurance score pricing',
+  // Product - Prevention as Product
+  'insurance prevention service bundle health',
+  'wellness program insurance integration wearable',
+  'predictive maintenance insurance industrial IoT',
+  'insurance legal service bundle package',
+  'chronic disease management insurance plan',
+  // Product - Payout Mechanism
+  'parametric insurance earthquake flood instant',
+  'smart contract insurance automatic payout',
+  'non-cash service delivery insurance claim',
+  'index-based insurance agriculture weather',
+  'flight delay parametric automatic compensation',
+  // Marketing - Embedded & Contextual
+  'embedded insurance e-commerce checkout',
+  'car manufacturer built-in insurance Tesla BYD',
+  'pharmacy platform health insurance embedded',
+  'travel platform insurance integration booking',
+  'gig economy worker insurance platform embedded',
+  // Marketing - AI Hyper-personalization
+  'AI insurance recommendation personalized',
+  'insurance chatbot AI advisor personalized',
+  'machine learning customer insurance matching',
+  'insurtech personalization AI agent companion',
+  // Marketing - Distribution Shift
+  'insurance KOL influencer community distribution',
+  'DAO mutual insurance decentralized community',
+  'insurance distribution fintech partnership new',
+  'non-traditional insurance channel innovation',
+  'B2B2C insurance platform white-label',
+  // Marketing - Incentive Design
+  'insurance premium reward healthy behavior',
+  'safe driving discount insurance reward program',
+  'insurance loyalty points cashback gamification',
+  'risk reduction incentive insurance program',
+  'health insurance fitness tracker reward',
+  // Chinese Round 2
+  '带病投保 既往症 保险创新',
+  '虚拟资产 NFT 保险产品',
+  '气候保险 参数触发 自动赔付',
+  '嵌入式保险 电商平台 场景化',
+  'AI保险顾问 智能推荐 千人千面',
+  '保险社群 KOC 分销创新',
+  '健康管理 保险 激励机制 积分',
+  '宠物保险 创新 互联网',
+  '网络安全保险 数据泄露 新产品',
+  '新能源车险 智能定价 车联网',
+  // Japanese Round 2
+  'ペット保険 新サービス 2025 2026',
+  'サイバー保険 新商品 企業',
+  'AI 保険 引受 自動化',
+  'パラメトリック保険 地震 台風',
+  // Korean Round 2
+  '펫보험 혁신 디지털 2025',
+  'AI 보험 심사 자동화 혁신',
+  '임베디드 보험 플랫폼 혁신',
 ];
 
 async function fetchArticleContent(url: string): Promise<string> {
@@ -140,117 +209,147 @@ async function main() {
   const sourceId = await getSourceId();
   let totalCollected = 0;
 
-  // Phase 1: Fetch known article URLs with full content
+  // Phase 1: Fetch known article URLs with full content (concurrent)
   logger.info('\n--- Phase 1: Fetching Known Innovation Articles ---');
 
-  for (const article of INNOVATION_ARTICLES) {
-    logger.info(`Fetching: ${article.title.slice(0, 60)}...`);
+  const articleResults = await Promise.allSettled(
+    INNOVATION_ARTICLES.map(async (article) => {
+      const content = await fetchArticleContent(article.url);
+      return { article, content };
+    })
+  );
 
-    const content = await fetchArticleContent(article.url);
-    if (!content || content.length < 100) {
-      logger.warn(`  Insufficient content, skipping`);
-      continue;
+  const articleItems: Array<{ title: string; url: string; content: string }> = [];
+  for (const r of articleResults) {
+    if (r.status === 'fulfilled' && r.value.content && r.value.content.length >= 100) {
+      articleItems.push({
+        title: r.value.article.title,
+        url: r.value.article.url,
+        content: r.value.content,
+      });
     }
+  }
 
-    const contentHash = generateContentHash(content + article.url);
-    const isDuplicate = await checkDuplicateContent(contentHash);
-    if (isDuplicate) {
-      logger.info(`  Already exists, skipping`);
-      continue;
-    }
+  // Batch dedup check
+  const articleHashes = articleItems.map(a => generateContentHash(a.content + a.url));
+  const existingArticleHashes = await checkDuplicateContentBatch(articleHashes);
 
+  for (let i = 0; i < articleItems.length; i++) {
+    if (existingArticleHashes.has(articleHashes[i])) continue;
     try {
+      const a = articleItems[i];
       await insertRawItem({
         source_id: sourceId,
-        source_url: article.url,
-        title: article.title,
-        content: content,
-        language: detectLanguage(article.title + ' ' + content),
-        content_hash: contentHash,
+        source_url: a.url,
+        title: a.title,
+        content: a.content,
+        language: detectLanguage(a.title + ' ' + a.content),
+        content_hash: articleHashes[i],
       });
       totalCollected++;
-      logger.info(`  + Collected with ${content.length} chars of content`);
+      logger.info(`  + ${a.title.slice(0, 60)} (${a.content.length} chars)`);
     } catch (error) {
       logger.warn(`  Error: ${(error as Error).message}`);
     }
-
-    await new Promise((r) => setTimeout(r, 1000));
   }
 
-  // Phase 2: Use Google search via DuckDuckGo HTML
+  // Phase 2: Use DuckDuckGo HTML search (concurrent batches of 5)
   logger.info('\n--- Phase 2: Searching for Innovation Cases ---');
 
-  for (const query of SEARCH_QUERIES) {
-    logger.info(`\nSearching: "${query}"`);
+  const queryBatches = batchArray(SEARCH_QUERIES, 5);
 
-    try {
-      const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-      const res = await fetch(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(15000),
-      });
+  for (let bi = 0; bi < queryBatches.length; bi++) {
+    const queryBatch = queryBatches[bi];
+    logger.info(`\nQuery batch ${bi + 1}/${queryBatches.length}`);
 
-      if (!res.ok) {
-        logger.warn(`  Search failed: HTTP ${res.status}`);
-        continue;
-      }
+    // Fetch all search result pages concurrently
+    const searchResults = await Promise.allSettled(
+      queryBatch.map(async (query) => {
+        const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+        const res = await fetch(searchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+          },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) return { query, links: [] as Array<{ link: string; title: string }> };
+        const html = await res.text();
 
-      const html = await res.text();
-
-      // Extract search result links
-      const resultRegex = /class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/gi;
-      let match;
-      let count = 0;
-
-      while ((match = resultRegex.exec(html)) !== null && count < 5) {
-        let link = match[1];
-        const title = match[2].replace(/<[^>]*>/g, '').trim();
-
-        // Decode DuckDuckGo redirect URLs
-        if (link.includes('uddg=')) {
-          const decoded = decodeURIComponent(link.split('uddg=')[1]?.split('&')[0] || '');
-          if (decoded) link = decoded;
+        const resultRegex = /class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/gi;
+        let match;
+        const links: Array<{ link: string; title: string }> = [];
+        while ((match = resultRegex.exec(html)) !== null && links.length < 5) {
+          let link = match[1];
+          const title = match[2].replace(/<[^>]*>/g, '').trim();
+          if (link.includes('uddg=')) {
+            const decoded = decodeURIComponent(link.split('uddg=')[1]?.split('&')[0] || '');
+            if (decoded) link = decoded;
+          }
+          if (!title || title.length < 15 || !link.startsWith('http')) continue;
+          if (link.includes('wikipedia.org') || link.includes('investopedia.com') ||
+              link.includes('indeed.com') || link.includes('linkedin.com')) continue;
+          links.push({ link, title });
         }
+        return { query, links };
+      })
+    );
 
-        if (!title || title.length < 15 || !link.startsWith('http')) continue;
+    // Collect all unique links from this batch
+    const allLinks: Array<{ link: string; title: string; query: string }> = [];
+    const seenLinks = new Set<string>();
+    for (const sr of searchResults) {
+      if (sr.status !== 'fulfilled') continue;
+      for (const item of sr.value.links) {
+        if (!seenLinks.has(item.link)) {
+          seenLinks.add(item.link);
+          allLinks.push({ ...item, query: sr.value.query });
+        }
+      }
+    }
 
-        // Skip known non-innovation domains
-        if (link.includes('wikipedia.org') || link.includes('investopedia.com') ||
-            link.includes('indeed.com') || link.includes('linkedin.com')) continue;
+    // Batch dedup check
+    const linkHashes = allLinks.map(l => generateContentHash(l.title + l.link));
+    const existingLinkHashes = await checkDuplicateContentBatch(linkHashes);
 
-        const contentHash = generateContentHash(title + link);
-        const isDuplicate = await checkDuplicateContent(contentHash);
-        if (isDuplicate) continue;
+    // Filter out duplicates
+    const newLinks = allLinks.filter((_, i) => !existingLinkHashes.has(linkHashes[i]));
 
-        // Fetch article content
-        const content = await fetchArticleContent(link);
-        const finalContent = content.length > 100 ? content : title;
+    // Fetch article content concurrently (batches of 5)
+    const contentBatches = batchArray(newLinks, 5);
+    for (const contentBatch of contentBatches) {
+      const contentResults = await Promise.allSettled(
+        contentBatch.map(async (item) => {
+          const content = await fetchArticleContent(item.link);
+          return { ...item, content: content.length > 100 ? content : item.title };
+        })
+      );
 
+      for (let i = 0; i < contentResults.length; i++) {
+        const cr = contentResults[i];
+        if (cr.status !== 'fulfilled') continue;
+        const item = cr.value;
+        const hash = generateContentHash(item.title + item.link);
         try {
           await insertRawItem({
             source_id: sourceId,
-            source_url: link,
-            title: cleanContent(title),
-            content: finalContent,
-            language: detectLanguage(title),
-            content_hash: contentHash,
+            source_url: item.link,
+            title: cleanContent(item.title),
+            content: item.content,
+            language: detectLanguage(item.title),
+            content_hash: hash,
           });
           totalCollected++;
-          count++;
-          logger.info(`  + ${title.slice(0, 70)} (${finalContent.length} chars)`);
+          logger.info(`  + ${item.title.slice(0, 70)} (${item.content.length} chars)`);
         } catch (error) {
           logger.warn(`  Error: ${(error as Error).message}`);
         }
-
-        await new Promise((r) => setTimeout(r, 500));
       }
-    } catch (error) {
-      logger.warn(`  Search error: ${(error as Error).message}`);
     }
 
-    await new Promise((r) => setTimeout(r, 2000));
+    // Brief pause between query batches
+    if (bi < queryBatches.length - 1) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
   }
 
   logger.info(`\n=== Collection Complete: ${totalCollected} articles collected ===`);

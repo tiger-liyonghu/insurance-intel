@@ -1,6 +1,5 @@
 import { collectAllRSS } from './rss';
 import { collectAllWebsites } from './web-scraper';
-import { runAISearch } from './ai-search';
 import { startPipelineRun, completePipelineRun } from '../shared/supabase';
 import { logger } from '../shared/utils';
 
@@ -58,20 +57,9 @@ export async function runCollectionPipeline(): Promise<CollectionSummary> {
       errorLog.push({ message: msg, timestamp: new Date().toISOString() });
     }
 
-    // 3. AI-powered search (to fill gaps)
-    logger.info('\n--- Phase 3: AI Search ---');
-    try {
-      const aiResult = await runAISearch();
-      summary.ai = {
-        collected: aiResult.totalCollected,
-        skipped: aiResult.totalSkipped,
-        errors: aiResult.totalErrors,
-      };
-    } catch (error) {
-      const msg = `AI search failed: ${(error as Error).message}`;
-      logger.error(msg);
-      errorLog.push({ message: msg, timestamp: new Date().toISOString() });
-    }
+    // 3. AI-powered search — disabled (Gemini hallucination, near-zero yield)
+    // Use web-search-collect.ts (DuckDuckGo) instead
+    logger.info('\n--- Phase 3: AI Search (skipped — use DuckDuckGo search instead) ---');
 
     // Calculate totals
     summary.total = {

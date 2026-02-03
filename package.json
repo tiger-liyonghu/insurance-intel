@@ -6,12 +6,28 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pipeline:collect": "npx tsx pipeline/collect/index.ts",
+    "pipeline:screen": "npx tsx pipeline/screen/screener.ts",
+    "pipeline:analyze": "npx tsx pipeline/analyze/analyzer.ts",
+    "pipeline:publish": "npx tsx pipeline/publish/publisher.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.93.3",
+    "cheerio": "^1.2.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "lucide-react": "^0.563.0",
     "next": "16.1.6",
+    "openai": "^6.17.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "rss-parser": "^3.13.0",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -21,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
